@@ -4,7 +4,16 @@
   box-sizing: border-box;
 }
 
-html {
+body {
   background-color: gray;
   height: 100vh;
+}
+
+.gameScreen {
+  display: flex;
+  justify-content: center;
+}
+
+#gameCanvas {
+  border: 2px solid black;
 }
