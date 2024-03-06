@@ -5,7 +5,7 @@ document.addEventListener("DOMContentLoaded", function () {
   const ctx = canvas.getContext("2d");
 
   let x = 5;
-  let y = 5;
+  let y = canvas.height - 50;
   let vy = 0;
   const gravity = 0.5;
   const boxWidth = 30;
