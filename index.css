@@ -24,3 +24,18 @@ body {
   justify-content: center;
   align-items: center;
 }
+
+#gameCanvas {
+  background: #5d5c5c;
+  display: block;
+  margin: auto;
+}
+
+#startButton {
+  position: absolute;
+  top: 35%;
+  left: 50%;
+  transform: translate(-35%, -50%);
+  padding: 1rem;
+  border-radius: 10px;
+}

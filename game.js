@@ -1,4 +1,5 @@
 const context = document.querySelector("canvas").getContext("2d");
+const canvas = document.getElementById("gameCanvas");
 
 context.canvas.height = 400;
 context.canvas.width = 1220;
@@ -16,9 +17,19 @@ const player = {
   width: 22,
   x: 0,
   xVelocity: 0,
-  y: 0,
+  y: 385 - 32,
   yVelocity: 0,
 };
+
+// Handeling the starting of the game
+function startGame() {
+  document.getElementById("startButton").style.display = "none"; // Hides the start button
+  window.addEventListener("keydown", controller.keyListener);
+  window.addEventListener("keyup", controller.keyListener);
+  window.requestAnimationFrame(loop); // Starts the game loop
+}
+
+document.getElementById("startButton").addEventListener("click", startGame);
 
 // Create the obstacles for each frame
 const nextFrame = () => {
@@ -33,40 +44,24 @@ const nextFrame = () => {
 };
 
 const controller = {
-  left: false,
-  right: false,
-  up: false,
+  jump: false,
   keyListener: function (event) {
     var key_state = event.type == "keydown" ? true : false;
 
-    switch (event.keyCode) {
-      case 37: // left key
-        controller.left = key_state;
-        break;
-      case 38: // up key
-        controller.up = key_state;
-        break;
-      case 39: // right key
-        controller.right = key_state;
-        break;
+    if (event.keyCode == 32) {
+      // Space bar
+      controller.jump = key_state;
     }
   },
 };
 
 const loop = function () {
-  if (controller.up && player.jumping == false) {
+  if (controller.jump && player.jumping == false) {
     player.yVelocity -= 20;
     player.jumping = true;
   }
 
-  if (controller.left) {
-    player.xVelocity -= 0.5;
-  }
-
-  if (controller.right) {
-    player.xVelocity += 0.5;
-  }
-
+  player.xVelocity += 1; // moves the player right
   player.yVelocity += 1.5; // gravity
   player.x += player.xVelocity;
   player.y += player.yVelocity;
@@ -80,15 +75,12 @@ const loop = function () {
     player.yVelocity = 0;
   }
 
-  // if player is going off the left of the screen
-  if (player.x < -20) {
-    player.x = 1220;
-  } else if (player.x > 1220) {
-    // if player goes past right boundary
-
+  // if player goes past right boundary, reset to the left
+  if (player.x > 1220) {
     player.x = -20;
     nextFrame();
   }
+
   // Creates the backdrop for each frame
   context.fillStyle = "#5871CD";
   context.fillRect(0, 0, 1220, 400); // x, y, width, height
@@ -126,7 +118,3 @@ const loop = function () {
   // call update when the browser is ready to draw again
   window.requestAnimationFrame(loop);
 };
-
-window.addEventListener("keydown", controller.keyListener);
-window.addEventListener("keyup", controller.keyListener);
-window.requestAnimationFrame(loop);
