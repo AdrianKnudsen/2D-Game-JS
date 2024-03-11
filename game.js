@@ -90,7 +90,7 @@ const loop = function () {
     player.yVelocity = 0;
   }
 
-  // if player goes past right boundary, reset to the left
+  // When player goes past right boundary, reset to the left
   if (player.x > 1220) {
     player.x = -20;
     nextFrame();
@@ -199,12 +199,39 @@ function drawCoverScreen(gameOver = false) {
 }
 
 function endGame() {
+  const currentScore = parseInt(timer.toFixed(0));
+  updateHighScore(currentScore); // Update the high score if the current score is higher
   drawCoverScreen(true);
   document.getElementById("startButton").innerText = "Reset Game";
   document.getElementById("startButton").style.display = "inline-block";
+  displayHighScore();
 }
 
 document.addEventListener("DOMContentLoaded", () => {
   drawCoverScreen(); // This draws the initial screen
   document.getElementById("startButton").style.display = "inline-block";
 });
+
+function updateHighScore(currentScore) {
+  // Retrives the high score from local storage or set to 0 if it doesn't exist
+  let highScore = localStorage.getItem("highScore")
+    ? parseInt(localStorage.getItem("highScore"))
+    : 0;
+
+  // Compare the current score with the high score and update if necessary
+  if (currentScore > highScore) {
+    localStorage.setItem("highScore", currentScore.toString());
+  }
+  return highScore;
+}
+
+function displayHighScore() {
+  // Retrieve the high score from local storage or set to 0 if it doesn't exist
+  let highScore = localStorage.getItem("highScore")
+    ? localStorage.getItem("highScore")
+    : "0";
+
+  // Update the high score display element
+  document.getElementById("highScoreDisplay").innerText =
+    "High Score: " + highScore;
+}

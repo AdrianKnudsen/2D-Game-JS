@@ -34,11 +34,16 @@ body {
 #startButton {
   display: none;
   position: absolute;
-  top: 50%;
+  bottom: 50%;
   left: 50%;
-  transform: translate(-50%, -50%);
+  transform: translate(-50%, -65%);
   padding: 0.5rem 2rem;
   border-radius: 10px;
   font-size: 1.4rem;
   border: none;
+}
+
+#highScoreDisplay {
+  text-align: center;
+  font-size: 1.5rem;
 }
