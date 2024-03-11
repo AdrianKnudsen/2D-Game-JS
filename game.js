@@ -26,9 +26,20 @@ const player = {
 
 // Handeling the starting of the game
 function startGame() {
-  document.getElementById("startButton").style.display = "none"; // Hides the start button
   window.addEventListener("keydown", controller.keyListener);
   window.addEventListener("keyup", controller.keyListener);
+  document.getElementById("startButton").style.display = "none"; // Hides the start button
+  // Reset game state
+  timer = 0;
+  frameCount = 1;
+  obXCoors.length = 0; // Clears obstacles
+  // Reset player position
+  player.x = 100;
+  player.y = 385 - 32;
+  player.xVelocity = 0;
+  player.yVelocity = 0;
+  player.jumping = false;
+
   window.requestAnimationFrame(loop); // Starts the game loop
 }
 
@@ -58,6 +69,7 @@ const controller = {
   },
 };
 
+// Game loop
 const loop = function () {
   if (controller.jump && player.jumping == false) {
     player.yVelocity -= 20;
@@ -68,8 +80,8 @@ const loop = function () {
   player.yVelocity += 2; // gravity
   player.x += player.xVelocity;
   player.y += player.yVelocity;
-  player.xVelocity *= 0.9; // friction
-  player.yVelocity *= 0.9; // friction
+  player.xVelocity *= 0.9; // friction x-axis
+  player.yVelocity *= 0.9; // friction y-axis
 
   // if player is falling below floor line
   if (player.y > 386 - 16 - 32) {
@@ -95,7 +107,6 @@ const loop = function () {
   context.fill();
 
   // Create the obstacles for each frame
-  // Set the standard obstacle height
   const height = 200 * Math.cos(Math.PI / 6);
 
   context.fillStyle = "#FBF5F3"; // hex for triangle color
@@ -109,6 +120,29 @@ const loop = function () {
     context.closePath();
     context.fill();
   });
+
+  function checkCollision() {
+    const playerBottomY = player.y + player.height;
+    const playerRightX = player.x + player.width;
+
+    for (let i = 0; i < obXCoors.length; i++) {
+      const obXCoor = obXCoors[i];
+      const obWidth = 10;
+      const obHeight = 40;
+
+      const triangleTopY = 385 - obHeight;
+
+      if (
+        playerRightX >= obXCoor &&
+        player.x <= obXCoor + obWidth &&
+        playerBottomY >= triangleTopY &&
+        player.y <= 385
+      ) {
+        return true; // Collision detected
+      }
+    }
+    return false; // No collision detected
+  }
 
   // Creates the "ground" for each frame
   context.strokeStyle = "#644B0B";
@@ -127,8 +161,50 @@ const loop = function () {
   // Timer Css
   context.fillStyle = "#F0F0F0";
   context.font = "20px Arial";
-  context.fillText(`Score: ${timerDisplay}`, 20, 30);
+  context.fillText(`Score: ${timerDisplay}`, 50, 30);
 
-  // call update when the browser is ready to draw again
+  if (checkCollision()) {
+    endGame();
+    return; // Stops the game loop
+  }
+
   window.requestAnimationFrame(loop);
 };
+
+function drawCoverScreen(gameOver = false) {
+  context.fillStyle = "#5871CD";
+  context.fillRect(0, 0, canvas.width, canvas.height);
+  context.fillStyle = "#f0f0f0";
+  context.font = "30px Arial";
+  context.textAlign = "center";
+  if (gameOver) {
+    context.fillText("Game Over", canvas.width / 2, canvas.height / 2);
+    context.fillText(
+      `Score: ${timer.toFixed(0)}`,
+      canvas.width / 2,
+      canvas.height / 2 + 40
+    );
+    // Show a reset button
+    document.getElementById("startButton").innerText = "Reset Game";
+    document.getElementById("startButton").style.display = "inline-block";
+  } else {
+    context.fillText(
+      "Welcome to the Game",
+      canvas.width / 2,
+      canvas.height / 2
+    );
+    // Initial state for "Start Game" button
+    document.getElementById("startButton").innerText = "Start Game";
+  }
+}
+
+function endGame() {
+  drawCoverScreen(true);
+  document.getElementById("startButton").innerText = "Reset Game";
+  document.getElementById("startButton").style.display = "inline-block";
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  drawCoverScreen(); // This draws the initial screen
+  document.getElementById("startButton").style.display = "inline-block";
+});
