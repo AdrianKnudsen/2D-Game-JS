@@ -1,6 +1,9 @@
 const context = document.querySelector("canvas").getContext("2d");
 const canvas = document.getElementById("gameCanvas");
 
+// Initialize points score
+let timer = 0;
+
 context.canvas.height = 400;
 context.canvas.width = 1220;
 
@@ -62,7 +65,7 @@ const loop = function () {
   }
 
   player.xVelocity += 1; // moves the player right
-  player.yVelocity += 1.5; // gravity
+  player.yVelocity += 2; // gravity
   player.x += player.xVelocity;
   player.y += player.yVelocity;
   player.xVelocity *= 0.9; // friction
@@ -114,6 +117,17 @@ const loop = function () {
   context.moveTo(0, 385);
   context.lineTo(1220, 385);
   context.stroke();
+
+  // Update timer/points
+  timer += 1 / 60;
+
+  // Converts the timer to whole numbers
+  const timerDisplay = timer.toFixed(0);
+
+  // Timer Css
+  context.fillStyle = "#F0F0F0";
+  context.font = "20px Arial";
+  context.fillText(`Score: ${timerDisplay}`, 20, 30);
 
   // call update when the browser is ready to draw again
   window.requestAnimationFrame(loop);
