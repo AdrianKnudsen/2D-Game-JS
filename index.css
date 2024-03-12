@@ -41,6 +41,20 @@ body {
   border-radius: 10px;
   font-size: 1.4rem;
   border: none;
+  cursor: pointer;
+  transition: all 0.5s;
+  color: #00b436;
+  background-color: #fbf5f3;
+}
+
+#startButton:hover {
+  padding: 0.5rem 3rem;
+  background: linear-gradient(90deg, #00b436 0%, #0c6cac 100%);
+  color: #fbf5f3;
+}
+
+#startButton::after {
+  transition: 0.5s;
 }
 
 #highScoreDisplay {
