@@ -1,180 +1,230 @@
 const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
 
+// Load the background image for the level
 const bgImage = new Image();
 bgImage.src = "./images/cyberbackgroundfor2dgame.png";
 
-const context = document.querySelector("canvas").getContext("2d");
+// Level width will be set based on the background image width after it loads
+let LEVEL_WIDTH = 16000; // fallback value
 
-// Initialize points score
+const context = ctx;
+
+// Timer for score
 let timer = 0;
 
-context.canvas.height = 400;
-context.canvas.width = 1220;
+// Set canvas size
+context.canvas.height = 500;
+context.canvas.width = 800;
 
-// Start the frame count at 1
+// Frame counter for animation or timing
 let frameCount = 1;
-// Set the number of obstacles to match the current "level"
-let obCount = frameCount;
-// Create a collection to hold the generated x coordinates
-const obXCoors = [];
 
+// Y position of the floor (bottom of the screen minus ground thickness)
+const FLOOR_Y = canvas.height - 10;
+
+// Player object with position, size, and movement state
 const player = {
-  height: 32,
+  height: 52,
   jumping: true,
   width: 22,
   x: 0,
   xVelocity: 0,
-  y: 385 - 32,
+  y: FLOOR_Y - 32,
   yVelocity: 0,
 };
 
-// Handeling the starting of the game
-function startGame() {
-  window.addEventListener("keydown", controller.keyListener);
-  window.addEventListener("keyup", controller.keyListener);
-  document.getElementById("startButton").style.display = "none"; // Hides the start button
-  // Reset game state
-  timer = 0;
-  frameCount = 1;
-  obXCoors.length = 0; // Clears obstacles
-  // Reset player position
-  player.x = 100;
-  player.y = 385 - 32;
-  player.xVelocity = 0;
-  player.yVelocity = 0;
-  player.jumping = false;
+// Array to hold all platforms in the level
+const platforms = [];
 
-  window.requestAnimationFrame(loop); // Starts the game loop
-}
-
-document.getElementById("startButton").addEventListener("click", startGame);
-
-// Create the obstacles for each frame
-const nextFrame = () => {
-  // increase the frame / "level" count
-  frameCount++;
-
-  for (let i = 0; i < obCount; i++) {
-    // Randomly generate the x coordinate for the top corner start of the triangles
-    obXCoor = Math.floor(Math.random() * (1165 - 140 + 1) + 140);
-    obXCoors.push(obXCoor);
-  }
-};
-
+// Keyboard controller for movement and jumping
 const controller = {
+  left: false,
+  right: false,
   jump: false,
   keyListener: function (event) {
-    var key_state = event.type == "keydown" ? true : false;
-
-    if (event.keyCode == 32) {
-      // Space bar
-      controller.jump = key_state;
+    const key_state = event.type === "keydown";
+    switch (event.code) {
+      case "ArrowLeft":
+        controller.left = key_state;
+        break;
+      case "ArrowRight":
+        controller.right = key_state;
+        break;
+      case "ArrowUp":
+        controller.jump = key_state;
+        break;
     }
   },
 };
 
-// Game loop
-const loop = function () {
-  // Draw the background image
-  context.drawImage(bgImage, 0, 0, canvas.width, canvas.height);
+// Hide the start button until the background image is loaded
+document.addEventListener("DOMContentLoaded", () => {
+  document.getElementById("startButton").style.display = "none";
+});
 
-  if (controller.jump && player.jumping == false) {
+// Start button event listener (starts the game)
+document.getElementById("startButton").addEventListener("click", startGame);
+
+// Generate platforms spaced so the player can jump from one to the next
+function generateRandomPlatforms(numPlatforms = 50) {
+  platforms.length = 0;
+
+  // Start with a platform at a fixed position
+  let prevX = 100;
+  let prevY = 350;
+  let minWidth = 60,
+    maxWidth = 140;
+  let minDX = 80,
+    maxDX = 180; // horizontal spacing between platforms
+  let minDY = -80,
+    maxDY = 60; // vertical spacing (negative = up)
+
+  for (let i = 0; i < numPlatforms; i++) {
+    const width = Math.floor(Math.random() * (maxWidth - minWidth)) + minWidth;
+    // Place the next platform to the right of the previous one
+    let x = Math.min(
+      prevX + Math.floor(Math.random() * (maxDX - minDX)) + minDX,
+      LEVEL_WIDTH - maxWidth
+    );
+    // Vary the Y position up or down, but keep it on screen
+    let y = prevY + Math.floor(Math.random() * (maxDY - minDY)) + minDY;
+    y = Math.max(80, Math.min(y, FLOOR_Y - 60));
+
+    platforms.push({ x, y, width, height: 10 });
+
+    prevX = x;
+    prevY = y;
+  }
+}
+
+// Start or restart the game
+function startGame() {
+  generateRandomPlatforms();
+  window.addEventListener("keydown", controller.keyListener);
+  window.addEventListener("keyup", controller.keyListener);
+  document.getElementById("startButton").style.display = "none";
+  player.x = 0;
+  player.y = FLOOR_Y - player.height;
+  player.xVelocity = 0;
+  player.yVelocity = 0;
+  player.jumping = true;
+  timer = 0;
+  frameCount = 1;
+  drawCoverScreen(false); // Remove cover before starting
+  window.requestAnimationFrame(loop);
+}
+
+// Camera X offset for scrolling
+let cameraX = 0;
+
+// Main game loop
+const loop = function () {
+  // Center the camera on the player, but don't scroll past the level edges
+  cameraX = player.x + player.width / 2 - canvas.width / 2;
+  if (cameraX < 0) cameraX = 0;
+  if (cameraX > LEVEL_WIDTH - canvas.width)
+    cameraX = LEVEL_WIDTH - canvas.width;
+
+  // Draw enough background tiles to cover the visible area, scrolling with the camera
+  const bgTiles = Math.ceil(canvas.width / bgImage.width) + 2;
+  for (let i = 0; i < bgTiles; i++) {
+    context.drawImage(
+      bgImage,
+      i * bgImage.width - (cameraX % bgImage.width),
+      0,
+      bgImage.width,
+      canvas.height
+    );
+  }
+
+  // Handle player input for movement and jumping
+  if (controller.left) {
+    player.xVelocity -= 1;
+  }
+  if (controller.right) {
+    player.xVelocity += 1;
+  }
+  if (controller.jump && player.jumping === false) {
     player.yVelocity -= 20;
     player.jumping = true;
   }
 
-  player.xVelocity += 1; // moves the player right
-  player.yVelocity += 2; // gravity
+  // Apply gravity and friction to the player
+  player.yVelocity += 1.3;
+  player.xVelocity *= 0.9;
+
+  // Store previous Y position for collision checks
+  let prevY = player.y - player.yVelocity;
+
+  // Update player position
   player.x += player.xVelocity;
   player.y += player.yVelocity;
-  player.xVelocity *= 0.9; // friction x-axis
-  player.yVelocity *= 0.9; // friction y-axis
 
-  // if player is falling below floor line
-  if (player.y > 386 - 16 - 32) {
+  // Check for collisions with platforms (only when falling yet)
+  platforms.forEach((platform) => {
+    if (
+      prevY + player.height <= platform.y &&
+      player.y + player.height >= platform.y &&
+      player.x + player.width > platform.x &&
+      player.x < platform.x + platform.width &&
+      player.yVelocity >= 0
+    ) {
+      player.y = platform.y - player.height;
+      player.yVelocity = 0;
+      player.jumping = false;
+    }
+  });
+
+  // Prevent the player from falling through the floor
+  if (player.y > FLOOR_Y - player.height) {
     player.jumping = false;
-    player.y = 386 - 16 - 32;
+    player.y = FLOOR_Y - player.height;
     player.yVelocity = 0;
   }
 
-  // When player goes past right boundary, reset to the left
-  if (player.x > 1220) {
-    player.x = -20;
-    nextFrame();
+  // Prevent the player from moving off the left edge of the screen
+  if (player.x < 0) {
+    player.x = 0;
+    player.xVelocity = 0;
   }
 
-  // Creates and fills the cube for each frame
-  context.fillStyle = "#B20B0B"; // hex for cube color
+  // Draw the player as a red rectangle, centered with the camera
+  context.fillStyle = "#B20B0B";
   context.beginPath();
-  context.rect(player.x, player.y, player.width, player.height);
+  context.rect(player.x - cameraX, player.y, player.width, player.height);
   context.fill();
 
-  // Create the obstacles for each frame
-  const height = 200 * Math.cos(Math.PI / 6);
-
-  context.fillStyle = "#FBF5F3"; // hex for triangle color
-  obXCoors.forEach((obXCoor) => {
-    context.beginPath();
-
-    context.moveTo(obXCoor, 385); // x = random, y = coor. on "ground"
-    context.lineTo(obXCoor + 20, 385); // x = ^random + 20, y = coor. on "ground"
-    context.lineTo(obXCoor + 10, 510 - height); // x = ^random + 10, y = peak of triangle
-
-    context.closePath();
-    context.fill();
+  // Draw all platforms, offset by the camera
+  context.fillStyle = "#00FFAA";
+  platforms.forEach((platform) => {
+    context.fillRect(
+      platform.x - cameraX,
+      platform.y,
+      platform.width,
+      platform.height
+    );
   });
 
-  function checkCollision() {
-    const playerBottomY = player.y + player.height;
-    const playerRightX = player.x + player.width;
-
-    for (let i = 0; i < obXCoors.length; i++) {
-      const obXCoor = obXCoors[i];
-      const obWidth = 10;
-      const obHeight = 40;
-
-      const triangleTopY = 385 - obHeight;
-
-      if (
-        playerRightX >= obXCoor &&
-        player.x <= obXCoor + obWidth &&
-        playerBottomY >= triangleTopY &&
-        player.y <= 385
-      ) {
-        return true; // Collision detected
-      }
-    }
-    return false; // No collision detected
-  }
-
-  // Creates the "ground" for each frame
-  context.strokeStyle = "#644B0B";
-  context.lineWidth = 30;
+  // Draw the ground as a blue line at the bottom
+  context.strokeStyle = "#0c6cac";
+  context.lineWidth = 10;
   context.beginPath();
-  context.moveTo(0, 385);
-  context.lineTo(1220, 385);
+  context.moveTo(0, FLOOR_Y);
+  context.lineTo(canvas.width, FLOOR_Y);
   context.stroke();
 
-  // Update timer/points
-  timer += 1 / 60;
-
-  // Converts the timer to whole numbers
-  const timerDisplay = timer.toFixed(0);
-
-  // Timer Css
-  context.fillStyle = "#F0F0F0";
-  context.font = "20px Arial";
-  context.fillText(`Score: ${timerDisplay}`, 50, 30);
-
-  if (checkCollision()) {
-    endGame();
-    return; // Stops the game loop
-  }
+  // Update and display the timer/score
+  // timer += 1 / 60;
+  // const timerDisplay = timer.toFixed(0);
+  // context.fillStyle = "#F0F0F0";
+  // context.font = "20px Arial";
+  // context.fillText(`Score: ${timerDisplay}`, 50, 30);
 
   window.requestAnimationFrame(loop);
 };
 
+// Draw the cover screen (welcome or game over)
 function drawCoverScreen(gameOver = false) {
   context.fillStyle = "#5871CD";
   context.fillRect(0, 0, canvas.width, canvas.height);
@@ -188,7 +238,7 @@ function drawCoverScreen(gameOver = false) {
       canvas.width / 2,
       canvas.height / 2 + 40
     );
-    // Show a reset button
+    // Show reset button
     document.getElementById("startButton").innerText = "Reset Game";
     document.getElementById("startButton").style.display = "inline-block";
   } else {
@@ -197,56 +247,46 @@ function drawCoverScreen(gameOver = false) {
       canvas.width / 2,
       canvas.height / 2
     );
-    // Initial state for "Start Game" button
+    // Initial state for start button
     document.getElementById("startButton").innerText = "Start Game";
   }
 }
 
+// End the game and show the cover screen with the score
 function endGame() {
   const currentScore = parseInt(timer.toFixed(0));
-  updateHighScore(currentScore); // Update the high score if the current score is higher
+  updateHighScore(currentScore);
   drawCoverScreen(true);
   document.getElementById("startButton").innerText = "Reset Game";
   document.getElementById("startButton").style.display = "inline-block";
   displayHighScore();
 }
 
-document.addEventListener("DOMContentLoaded", () => {
-  drawCoverScreen(); // This draws the initial screen
-  document.getElementById("startButton").style.display = "inline-block";
-});
-
+// Update the high score in local storage if the current score is higher
 function updateHighScore(currentScore) {
-  // Retrives the high score from local storage or set to 0 if it doesn't exist
   let highScore = localStorage.getItem("highScore")
     ? parseInt(localStorage.getItem("highScore"))
     : 0;
-
-  // Compare the current score with the high score and update if necessary
   if (currentScore > highScore) {
     localStorage.setItem("highScore", currentScore.toString());
   }
   return highScore;
 }
 
+// Display the high score on the screen
 function displayHighScore() {
-  // Retrieve the high score from local storage or set to 0 if it doesn't exist
   let highScore = localStorage.getItem("highScore")
     ? localStorage.getItem("highScore")
     : "0";
-
-  // Update the high score display element
   document.getElementById("highScoreDisplay").innerText =
     "High Score: " + highScore;
 }
 
-// Draw the background image once it's loaded
+// When the background image loads, set up the level and show the start button
 bgImage.onload = function () {
-  ctx.drawImage(bgImage, 0, 0, canvas.width, canvas.height);
+  LEVEL_WIDTH = bgImage.width * 20; // Level is 20 background images wide
+  generateRandomPlatforms();
+  drawCoverScreen();
+  displayHighScore();
+  document.getElementById("startButton").style.display = "inline-block";
 };
-
-function gameLoop() {
-  ctx.drawImage(bgImage, 0, 0, canvas.width, canvas.height);
-  // Draw the rest of the game
-  requestAnimationFrame(gameLoop);
-}
