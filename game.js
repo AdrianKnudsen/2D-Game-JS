@@ -3,7 +3,7 @@ const ctx = canvas.getContext("2d");
 
 // Load the background image for the level
 const bgImage = new Image();
-bgImage.src = "./images/Cyberbackgroundfor2dgame.png";
+bgImage.src = "./images/cyberbackgroundfor2dgame.png";
 
 // Level width will be set based on the background image width after it loads
 let LEVEL_WIDTH = 16000; // fallback value
