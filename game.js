@@ -21,7 +21,7 @@ context.canvas.width = 800;
 let frameCount = 1;
 
 // Y position of the floor (bottom of the screen minus ground thickness)
-const FLOOR_Y = canvas.height - 10;
+const FLOOR_Y = canvas.height - 5;
 
 // Player object with position, size, and movement state
 const player = {
@@ -70,21 +70,30 @@ document.getElementById("startButton").addEventListener("click", startGame);
 function generateRandomPlatforms(numPlatforms = 50) {
   platforms.length = 0;
 
-  // Start with a platform at a fixed position
-  let prevX = 100;
-  let prevY = 350;
+  // Place the starting ledge at the far left edge
+  const startLedge = {
+    x: 0, // Touches the left wall
+    y: 320, // medium height
+    width: 120,
+    height: 10,
+  };
+  platforms.push(startLedge);
+
+  // Start with the fixed ledge as the previous platform
+  let prevX = startLedge.x;
+  let prevY = startLedge.y;
   let minWidth = 60,
     maxWidth = 140;
   let minDX = 80,
-    maxDX = 180; // horizontal spacing between platforms
+    maxDX = 180;
   let minDY = -80,
-    maxDY = 60; // vertical spacing (negative = up)
+    maxDY = 60;
 
-  for (let i = 0; i < numPlatforms; i++) {
+  for (let i = 0; i < numPlatforms - 1; i++) {
     const width = Math.floor(Math.random() * (maxWidth - minWidth)) + minWidth;
     // Place the next platform to the right of the previous one
     let x = Math.min(
-      prevX + Math.floor(Math.random() * (maxDX - minDX)) + minDX,
+      prevX + (Math.floor(Math.random() * (maxDX - minDX)) + minDX),
       LEVEL_WIDTH - maxWidth
     );
     // Vary the Y position up or down, but keep it on screen
@@ -104,14 +113,15 @@ function startGame() {
   window.addEventListener("keydown", controller.keyListener);
   window.addEventListener("keyup", controller.keyListener);
   document.getElementById("startButton").style.display = "none";
-  player.x = 0;
-  player.y = FLOOR_Y - player.height;
+  // Place player on the starting ledge (now at the right wall)
+  player.x = platforms[0].x + platforms[0].width / 2 - player.width / 2;
+  player.y = platforms[0].y - player.height;
   player.xVelocity = 0;
   player.yVelocity = 0;
   player.jumping = true;
   timer = 0;
   frameCount = 1;
-  drawCoverScreen(false); // Remove cover before starting
+  drawCoverScreen(false);
   window.requestAnimationFrame(loop);
 }
 
@@ -181,6 +191,8 @@ const loop = function () {
     player.jumping = false;
     player.y = FLOOR_Y - player.height;
     player.yVelocity = 0;
+    endGame(); // End the game if player touches the floor
+    return; // Stop the loop
   }
 
   // Prevent the player from moving off the left edge of the screen
@@ -196,7 +208,7 @@ const loop = function () {
   context.fill();
 
   // Draw all platforms, offset by the camera
-  context.fillStyle = "#00FFAA";
+  context.fillStyle = "#B3B3B3";
   platforms.forEach((platform) => {
     context.fillRect(
       platform.x - cameraX,
