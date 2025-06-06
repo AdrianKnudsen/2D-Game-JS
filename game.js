@@ -15,10 +15,10 @@ let timer = 0;
 
 // Set canvas size
 context.canvas.height = 500;
-context.canvas.width = 800;
+context.canvas.width = 1000;
 
 // Frame counter for animation or timing
-let frameCount = 1;
+let frameCount = 60;
 
 // Y position of the floor (bottom of the screen minus ground thickness)
 const FLOOR_Y = canvas.height - 5;
