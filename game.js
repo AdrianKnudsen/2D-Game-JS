@@ -8,17 +8,20 @@ bgImage.src = "./Images/cyberbackgroundfor2dgame.png";
 // Level width will be set based on the background image width after it loads
 let LEVEL_WIDTH = 16000; // fallback value
 
-const context = ctx;
-
 // Timer for score
 let timer = 0;
 
-// Set canvas size
-context.canvas.height = 500;
-context.canvas.width = 1000;
+// Points variable (was coinScore)
+let coinScore = 0;
 
 // Frame counter for animation or timing
 let frameCount = 60;
+
+// Set canvas size
+canvas.height = 500;
+canvas.width = 1000;
+
+const context = ctx;
 
 // Y position of the floor (bottom of the screen minus ground thickness)
 const FLOOR_Y = canvas.height - 5;
@@ -36,6 +39,9 @@ const player = {
 
 // Array to hold all platforms in the level
 const platforms = [];
+
+// Array to hold coins (points)
+const coins = [];
 
 // Keyboard controller for movement and jumping
 const controller = {
@@ -69,17 +75,17 @@ document.getElementById("startButton").addEventListener("click", startGame);
 // Generate platforms spaced so the player can jump from one to the next
 function generateRandomPlatforms(numPlatforms = 50) {
   platforms.length = 0;
+  coins.length = 0; // Clear coins
 
   // Place the starting ledge at the far left edge
   const startLedge = {
-    x: 0, // Touches the left wall
-    y: 320, // medium height
+    x: 0,
+    y: 320,
     width: 120,
     height: 10,
   };
   platforms.push(startLedge);
 
-  // Start with the fixed ledge as the previous platform
   let prevX = startLedge.x;
   let prevY = startLedge.y;
   let minWidth = 60,
@@ -102,6 +108,17 @@ function generateRandomPlatforms(numPlatforms = 50) {
 
     platforms.push({ x, y, width, height: 10 });
 
+    // 50% chance to place a coin (point) on this platform
+    if (Math.random() < 0.5) {
+      coins.push({
+        x: x + width / 2 - 10,
+        y: y - 20,
+        radius: 10,
+        collected: false,
+        spin: Math.random() * Math.PI * 2, // random spin phase
+      });
+    }
+
     prevX = x;
     prevY = y;
   }
@@ -113,13 +130,14 @@ function startGame() {
   window.addEventListener("keydown", controller.keyListener);
   window.addEventListener("keyup", controller.keyListener);
   document.getElementById("startButton").style.display = "none";
-  // Place player on the starting ledge (now at the right wall)
+  // Place player on the starting ledge
   player.x = platforms[0].x + platforms[0].width / 2 - player.width / 2;
   player.y = platforms[0].y - player.height;
   player.xVelocity = 0;
   player.yVelocity = 0;
   player.jumping = true;
   timer = 0;
+  coinScore = 0; // Reset points on restart
   frameCount = 1;
   drawCoverScreen(false);
   window.requestAnimationFrame(loop);
@@ -226,12 +244,44 @@ const loop = function () {
   context.lineTo(canvas.width, FLOOR_Y);
   context.stroke();
 
-  // Update and display the timer/score
-  // timer += 1 / 60;
-  // const timerDisplay = timer.toFixed(0);
-  // context.fillStyle = "#F0F0F0";
-  // context.font = "20px Arial";
-  // context.fillText(`Score: ${timerDisplay}`, 50, 30);
+  // Draw and animate coins (points)
+  coins.forEach((coin) => {
+    if (!coin.collected) {
+      // Simple spinning effect using scale
+      coin.spin += 0.1;
+      const scale = Math.abs(Math.cos(coin.spin));
+      context.save();
+      context.translate(coin.x - cameraX + coin.radius, coin.y + coin.radius);
+      context.scale(scale, 1);
+      context.beginPath();
+      context.arc(0, 0, coin.radius, 0, 2 * Math.PI);
+      context.fillStyle = "#FFD700";
+      context.fill();
+      context.strokeStyle = "#B29600";
+      context.lineWidth = 2;
+      context.stroke();
+      context.restore();
+    }
+  });
+
+  // Point collection
+  coins.forEach((coin) => {
+    if (
+      !coin.collected &&
+      player.x + player.width > coin.x &&
+      player.x < coin.x + coin.radius * 2 &&
+      player.y + player.height > coin.y &&
+      player.y < coin.y + coin.radius * 2
+    ) {
+      coin.collected = true;
+      coinScore += 1;
+    }
+  });
+
+  // Draw points at top left
+  context.fillStyle = "#FFD700";
+  context.font = "22px Arial";
+  context.fillText(`Points: ${coinScore}`, 50, 60);
 
   window.requestAnimationFrame(loop);
 };
@@ -246,7 +296,7 @@ function drawCoverScreen(gameOver = false) {
   if (gameOver) {
     context.fillText("Game Over", canvas.width / 2, canvas.height / 2);
     context.fillText(
-      `Score: ${timer.toFixed(0)}`,
+      `Points: ${coinScore}`,
       canvas.width / 2,
       canvas.height / 2 + 40
     );
@@ -266,12 +316,11 @@ function drawCoverScreen(gameOver = false) {
 
 // End the game and show the cover screen with the score
 function endGame() {
-  const currentScore = parseInt(timer.toFixed(0));
-  updateHighScore(currentScore);
+  updateHighScore(coinScore);
+  displayHighScore();
   drawCoverScreen(true);
   document.getElementById("startButton").innerText = "Reset Game";
   document.getElementById("startButton").style.display = "inline-block";
-  displayHighScore();
 }
 
 // Update the high score in local storage if the current score is higher
