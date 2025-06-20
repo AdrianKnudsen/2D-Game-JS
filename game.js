@@ -28,13 +28,18 @@ const FLOOR_Y = canvas.height - 5;
 
 // Player object with position, size, and movement state
 const player = {
-  height: 52,
-  jumping: true,
-  width: 22,
   x: 0,
+  y: FLOOR_Y - 64,
   xVelocity: 0,
-  y: FLOOR_Y - 32,
   yVelocity: 0,
+  jumping: true,
+  width: 46, // width of one frame in the sprite sheet
+  height: 50, // height of one frame in the sprite sheet
+  frameX: 0, // current frame index (column)
+  frameY: 3, // row index for running (bottom row, zero-based)
+  frameCount: 8, // number of frames in the run animation (bottom row)
+  frameTimer: 0,
+  frameInterval: 6, // how many game frames to wait before advancing animation
 };
 
 // Array to hold all platforms in the level
@@ -63,6 +68,10 @@ const controller = {
     }
   },
 };
+
+// Preload the player image for later use
+const playerImage = new Image();
+playerImage.src = "./Images/playerspritemapv9.png";
 
 // Hide the start button until the background image is loaded
 document.addEventListener("DOMContentLoaded", () => {
@@ -219,11 +228,31 @@ const loop = function () {
     player.xVelocity = 0;
   }
 
-  // Draw the player as a red rectangle, centered with the camera
-  context.fillStyle = "#B20B0B";
-  context.beginPath();
-  context.rect(player.x - cameraX, player.y, player.width, player.height);
-  context.fill();
+  // Animate player (simple run cycle)
+  if (controller.left || controller.right) {
+    player.frameTimer++;
+    if (player.frameTimer >= player.frameInterval) {
+      player.frameX = (player.frameX + 1) % player.frameCount;
+      player.frameTimer = 0;
+    }
+  } else {
+    player.frameX = 0; // idle frame (first frame of run)
+  }
+
+  // Only draw if image is loaded
+  if (playerImage.complete && playerImage.naturalWidth !== 0) {
+    context.drawImage(
+      playerImage,
+      player.frameX * player.width, // source x
+      player.frameY * player.height, // source y
+      player.width, // source width
+      player.height, // source height
+      player.x - cameraX, // destination x
+      player.y, // destination y
+      player.width, // destination width
+      player.height // destination height
+    );
+  }
 
   // Draw all platforms, offset by the camera
   context.fillStyle = "#B3B3B3";
