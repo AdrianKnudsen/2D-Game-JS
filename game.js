@@ -39,7 +39,7 @@ const player = {
   frameY: 3, // row index for running (bottom row, zero-based)
   frameCount: 8, // number of frames in the run animation (bottom row)
   frameTimer: 0,
-  frameInterval: 6, // how many game frames to wait before advancing animation
+  frameInterval: 2, // how many game frames to wait before advancing animation
 };
 
 // Array to hold all platforms in the level
@@ -82,7 +82,7 @@ document.addEventListener("DOMContentLoaded", () => {
 document.getElementById("startButton").addEventListener("click", startGame);
 
 // Generate platforms spaced so the player can jump from one to the next
-function generateRandomPlatforms(numPlatforms = 50) {
+function generateRandomPlatforms(numPlatforms = 100) {
   platforms.length = 0;
   coins.length = 0; // Clear coins
 
@@ -99,26 +99,32 @@ function generateRandomPlatforms(numPlatforms = 50) {
   let prevY = startLedge.y;
   let minWidth = 60,
     maxWidth = 140;
-  let minDX = 80,
-    maxDX = 180;
-  let minDY = -80,
-    maxDY = 60;
+  let minDX = 100,
+    maxDX = 220; // horizontal distance between platforms
+  let minDY = -20,
+    maxDY = 10; // vertical distance (negative = up)
+  let minGap = 20; // Minimum horizontal gap between platforms
 
   for (let i = 0; i < numPlatforms - 1; i++) {
+    // Gradually increase maxDX for more challenge
+    let progress = i / numPlatforms;
+    let dynamicMaxDX = maxDX + progress * 100; // up to 100px more at the end
     const width = Math.floor(Math.random() * (maxWidth - minWidth)) + minWidth;
-    // Place the next platform to the right of the previous one
-    let x = Math.min(
-      prevX + (Math.floor(Math.random() * (maxDX - minDX)) + minDX),
-      LEVEL_WIDTH - maxWidth
-    );
-    // Vary the Y position up or down, but keep it on screen
-    let y = prevY + Math.floor(Math.random() * (maxDY - minDY)) + minDY;
+
+    // Ensure platforms do not touch: start after previous platform's right edge + minGap
+    let minX = prevX + platforms[platforms.length - 1].width + minGap;
+    let maxX = Math.min(minX + (dynamicMaxDX - minDX), LEVEL_WIDTH - maxWidth);
+    let x = Math.floor(Math.random() * (maxX - minX + 1)) + minX;
+
+    // Keep vertical gaps reasonable
+    let dy = Math.floor(Math.random() * (maxDY - minDY)) + minDY;
+    let y = prevY + dy;
     y = Math.max(80, Math.min(y, FLOOR_Y - 60));
 
     platforms.push({ x, y, width, height: 10 });
 
-    // 50% chance to place a coin (point) on this platform
-    if (Math.random() < 0.5) {
+    // 30% chance to place a coin (point) on this platform
+    if (Math.random() < 0.3) {
       coins.push({
         x: x + width / 2 - 10,
         y: y - 20,
@@ -135,7 +141,7 @@ function generateRandomPlatforms(numPlatforms = 50) {
 
 // Start or restart the game
 function startGame() {
-  generateRandomPlatforms();
+  generateRandomPlatforms(100);
   window.addEventListener("keydown", controller.keyListener);
   window.addEventListener("keyup", controller.keyListener);
   document.getElementById("startButton").style.display = "none";
@@ -162,6 +168,11 @@ const loop = function () {
   if (cameraX < 0) cameraX = 0;
   if (cameraX > LEVEL_WIDTH - canvas.width)
     cameraX = LEVEL_WIDTH - canvas.width;
+
+  // Camera Y offset for vertical scrolling
+  let cameraY = player.y + player.height / 2 - canvas.height / 2;
+  if (cameraY < 0) cameraY = 0;
+  if (cameraY > FLOOR_Y - canvas.height) cameraY = FLOOR_Y - canvas.height;
 
   // Draw enough background tiles to cover the visible area, scrolling with the camera
   const bgTiles = Math.ceil(canvas.width / bgImage.width) + 2;
@@ -243,14 +254,14 @@ const loop = function () {
   if (playerImage.complete && playerImage.naturalWidth !== 0) {
     context.drawImage(
       playerImage,
-      player.frameX * player.width, // source x
-      player.frameY * player.height, // source y
-      player.width, // source width
-      player.height, // source height
-      player.x - cameraX, // destination x
-      player.y, // destination y
-      player.width, // destination width
-      player.height // destination height
+      player.frameX * player.width,
+      player.frameY * player.height,
+      player.width,
+      player.height,
+      player.x - cameraX,
+      player.y - cameraY,
+      player.width,
+      player.height
     );
   }
 
@@ -259,7 +270,7 @@ const loop = function () {
   platforms.forEach((platform) => {
     context.fillRect(
       platform.x - cameraX,
-      platform.y,
+      platform.y - cameraY,
       platform.width,
       platform.height
     );
@@ -280,7 +291,10 @@ const loop = function () {
       coin.spin += 0.1;
       const scale = Math.abs(Math.cos(coin.spin));
       context.save();
-      context.translate(coin.x - cameraX + coin.radius, coin.y + coin.radius);
+      context.translate(
+        coin.x - cameraX + coin.radius,
+        coin.y - cameraY + coin.radius
+      );
       context.scale(scale, 1);
       context.beginPath();
       context.arc(0, 0, coin.radius, 0, 2 * Math.PI);
@@ -374,7 +388,7 @@ function displayHighScore() {
 
 // When the background image loads, set up the level and show the start button
 bgImage.onload = function () {
-  LEVEL_WIDTH = bgImage.width * 20; // Level is 20 background images wide
+  LEVEL_WIDTH = bgImage.width * 50; // Level is 50 background images wide
   generateRandomPlatforms();
   drawCoverScreen();
   displayHighScore();
