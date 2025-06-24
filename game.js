@@ -17,6 +17,9 @@ let coinScore = 0;
 // Frame counter for animation or timing
 let frameCount = 60;
 
+// Last timestamp for frame rate control
+let lastTimestamp = 0;
+
 // Set canvas size
 canvas.height = 500;
 canvas.width = 1000;
@@ -162,7 +165,11 @@ function startGame() {
 let cameraX = 0;
 
 // Main game loop
-const loop = function () {
+const loop = function (timestamp) {
+  if (!lastTimestamp) lastTimestamp = timestamp;
+  let delta = (timestamp - lastTimestamp) / 16.67; // 16.67ms ≈ 60fps, so delta ≈ 1 at 60fps
+  lastTimestamp = timestamp;
+
   // Center the camera on the player, but don't scroll past the level edges
   cameraX = player.x + player.width / 2 - canvas.width / 2;
   if (cameraX < 0) cameraX = 0;
@@ -186,21 +193,21 @@ const loop = function () {
     );
   }
 
-  // Handle player input for movement and jumping
+  // Use delta to scale all physics/movement:
   if (controller.left) {
-    player.xVelocity -= 1;
+    player.xVelocity -= 1 * delta;
   }
   if (controller.right) {
-    player.xVelocity += 1;
+    player.xVelocity += 1 * delta;
   }
   if (controller.jump && player.jumping === false) {
-    player.yVelocity -= 20;
+    player.yVelocity -= 22;
     player.jumping = true;
   }
 
   // Apply gravity and friction to the player
-  player.yVelocity += 1.3;
-  player.xVelocity *= 0.9;
+  player.yVelocity += 1.3 * delta;
+  player.xVelocity *= Math.pow(0.9, delta);
 
   // Store previous Y position for collision checks
   let prevY = player.y - player.yVelocity;
