@@ -33,6 +33,11 @@ body {
   width: 100%;
   max-width: 1000px;
   max-height: 500px;
+  box-shadow:
+    0 0 40px 10px #0c6cac,
+    0 0 0 4px #222 inset;
+  border-radius: 16px;
+  background: #222;
 }
 
 #startButton {
@@ -49,6 +54,8 @@ body {
   transition: all 0.5s;
   color: #00b436;
   background-color: #fbf5f3;
+  opacity: 0;
+  animation: fadeIn 1s forwards;
 }
 
 #startButton:hover {
@@ -63,5 +70,14 @@ body {
 
 #highScoreDisplay {
   text-align: center;
-  font-size: 1.5rem;
+  font-size: 2rem;
+  color: #ffd700;
+  text-shadow: 2px 2px 8px #0c6cac;
+  margin-bottom: 1rem;
+}
+
+@keyframes fadeIn {
+  to {
+    opacity: 1;
+  }
 }
