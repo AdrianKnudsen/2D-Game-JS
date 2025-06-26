@@ -1,3 +1,4 @@
+// Get the canvas and its drawing context
 const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
 
@@ -5,31 +6,32 @@ const ctx = canvas.getContext("2d");
 const bgImage = new Image();
 bgImage.src = "./Images/cyberbackgroundfor2dgame.png";
 
-// Level width will be set based on the background image width after it loads
-let LEVEL_WIDTH = 16000; // fallback value
+// Set a fallback level width (will be updated when bg loads)
+let LEVEL_WIDTH = 16000;
 
-// Timer for score
+// Timer for score (not used for points, but can be used for time-based features)
 let timer = 0;
 
-// Points variable (was coinScore)
+// Points variable (counts collected coins)
 let coinScore = 0;
 
-// Frame counter for animation or timing
+// Frame counter for animation or timing (not used in main loop)
 let frameCount = 60;
 
-// Last timestamp for frame rate control
+// Used for frame-rate independent movement
 let lastTimestamp = 0;
 
 // Set canvas size
 canvas.height = 500;
 canvas.width = 1000;
 
+// Alias for context (for clarity)
 const context = ctx;
 
 // Y position of the floor (bottom of the screen minus ground thickness)
 const FLOOR_Y = canvas.height - 5;
 
-// Player object with position, size, and movement state
+// Player object with position, size, and animation state
 const player = {
   x: 0,
   y: FLOOR_Y - 64,
@@ -72,7 +74,7 @@ const controller = {
   },
 };
 
-// Preload the player image for later use
+// Preload the player image (sprite sheet)
 const playerImage = new Image();
 playerImage.src = "./Images/playerspritemapv9.png";
 
@@ -98,6 +100,7 @@ function generateRandomPlatforms(numPlatforms = 100) {
   };
   platforms.push(startLedge);
 
+  // Variables for platform generation
   let prevX = startLedge.x;
   let prevY = startLedge.y;
   let minWidth = 60,
@@ -108,8 +111,9 @@ function generateRandomPlatforms(numPlatforms = 100) {
     maxDY = 10; // vertical distance (negative = up)
   let minGap = 20; // Minimum horizontal gap between platforms
 
+  // Generate each platform
   for (let i = 0; i < numPlatforms - 1; i++) {
-    // Gradually increase maxDX for more challenge
+    // Gradually increase maxDX for more challenge as you progress
     let progress = i / numPlatforms;
     let dynamicMaxDX = maxDX + progress * 100; // up to 100px more at the end
     const width = Math.floor(Math.random() * (maxWidth - minWidth)) + minWidth;
@@ -133,6 +137,7 @@ function generateRandomPlatforms(numPlatforms = 100) {
     const newMin = moving ? baseX - moveRange : x;
     const newMax = moving ? baseX + moveRange + width : x + width;
 
+    // Check for overlap with any other platform's range (moving or static)
     let overlap = false;
     for (let p of platforms) {
       if (Math.abs(p.y - y) < 30) {
@@ -145,6 +150,7 @@ function generateRandomPlatforms(numPlatforms = 100) {
       }
     }
 
+    // Only add platform if it doesn't overlap
     if (!overlap) {
       platforms.push({
         x,
@@ -158,6 +164,7 @@ function generateRandomPlatforms(numPlatforms = 100) {
         speed: 1 + Math.random() * 1.5,
       });
 
+      // 30% chance to place a coin (point) on this platform
       if (Math.random() < 0.3) {
         coins.push({
           x: x + width / 2 - 10,
@@ -198,6 +205,7 @@ let cameraX = 0;
 
 // Main game loop
 const loop = function (timestamp) {
+  // Calculate delta time for frame-rate independent movement
   if (!lastTimestamp) lastTimestamp = timestamp;
   let delta = (timestamp - lastTimestamp) / 16.67; // 16.67ms ≈ 60fps, so delta ≈ 1 at 60fps
   lastTimestamp = timestamp;
@@ -225,7 +233,7 @@ const loop = function (timestamp) {
     );
   }
 
-  // Use delta to scale all physics/movement:
+  // Handle player input for movement and jumping (scaled by delta)
   if (controller.left) {
     player.xVelocity -= 1 * delta;
   }
@@ -233,7 +241,7 @@ const loop = function (timestamp) {
     player.xVelocity += 1 * delta;
   }
   if (controller.jump && player.jumping === false) {
-    player.yVelocity -= 22;
+    player.yVelocity -= 22; // Jump impulse (not scaled by delta)
     player.jumping = true;
   }
 
@@ -248,7 +256,7 @@ const loop = function (timestamp) {
   player.x += player.xVelocity;
   player.y += player.yVelocity;
 
-  // Check for collisions with platforms (only when falling yet)
+  // Check for collisions with platforms (only when falling)
   platforms.forEach((platform) => {
     if (
       prevY + player.height <= platform.y &&
@@ -359,7 +367,7 @@ const loop = function (timestamp) {
     }
   });
 
-  // Point collection
+  // Point collection: check if player touches a coin
   coins.forEach((coin) => {
     if (
       !coin.collected &&
@@ -378,6 +386,7 @@ const loop = function (timestamp) {
   context.font = "22px Arial";
   context.fillText(`Points: ${coinScore}`, 50, 60);
 
+  // Request the next frame
   window.requestAnimationFrame(loop);
 };
 
