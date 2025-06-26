@@ -124,21 +124,53 @@ function generateRandomPlatforms(numPlatforms = 100) {
     let y = prevY + dy;
     y = Math.max(80, Math.min(y, FLOOR_Y - 60));
 
-    platforms.push({ x, y, width, height: 10 });
+    // 20% chance to make the platform moving
+    const moving = Math.random() < 0.2;
+    const moveRange = 80 + Math.random() * 80; // how far it moves left/right
+    const baseX = x; // original x position
 
-    // 30% chance to place a coin (point) on this platform
-    if (Math.random() < 0.3) {
-      coins.push({
-        x: x + width / 2 - 10,
-        y: y - 20,
-        radius: 10,
-        collected: false,
-        spin: Math.random() * Math.PI * 2, // random spin phase
-      });
+    // Calculate movement bounds for this platform
+    const newMin = moving ? baseX - moveRange : x;
+    const newMax = moving ? baseX + moveRange + width : x + width;
+
+    let overlap = false;
+    for (let p of platforms) {
+      if (Math.abs(p.y - y) < 30) {
+        const pMin = p.moving ? p.baseX - p.moveRange : p.x;
+        const pMax = p.moving ? p.baseX + p.moveRange + p.width : p.x + p.width;
+        if (!(newMax < pMin || newMin > pMax)) {
+          overlap = true;
+          break;
+        }
+      }
     }
 
-    prevX = x;
-    prevY = y;
+    if (!overlap) {
+      platforms.push({
+        x,
+        y,
+        width,
+        height: 10,
+        moving,
+        moveRange,
+        baseX,
+        direction: 1,
+        speed: 1 + Math.random() * 1.5,
+      });
+
+      if (Math.random() < 0.3) {
+        coins.push({
+          x: x + width / 2 - 10,
+          y: y - 20,
+          radius: 10,
+          collected: false,
+          spin: Math.random() * Math.PI * 2,
+        });
+      }
+
+      prevX = x;
+      prevY = y;
+    }
   }
 }
 
@@ -271,6 +303,19 @@ const loop = function (timestamp) {
       player.height
     );
   }
+
+  // Move moving platforms
+  platforms.forEach((platform) => {
+    if (platform.moving) {
+      platform.x += platform.direction * platform.speed * delta;
+      if (
+        platform.x > platform.baseX + platform.moveRange ||
+        platform.x < platform.baseX - platform.moveRange
+      ) {
+        platform.direction *= -1; // Reverse direction when reaching limits
+      }
+    }
+  });
 
   // Draw all platforms, offset by the camera
   context.fillStyle = "#B3B3B3";
