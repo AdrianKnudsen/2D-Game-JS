@@ -14,6 +14,10 @@ bgImage.src = "./Images/cyberbackgroundfor2dgame.png";
 const gameOverImage = new Image();
 gameOverImage.src = "./Images/cyberleapgameover.png";
 
+// Preload the player image (sprite sheet)
+const playerImage = new Image();
+playerImage.src = "./Images/playerspritemapv9.png";
+
 // Set a fallback level width (will be updated when bg loads)
 let LEVEL_WIDTH = 16000;
 
@@ -81,10 +85,6 @@ const controller = {
     }
   },
 };
-
-// Preload the player image (sprite sheet)
-const playerImage = new Image();
-playerImage.src = "./Images/playerspritemapv9.png";
 
 // Hide the start button until the background image is loaded
 document.addEventListener("DOMContentLoaded", () => {
@@ -249,7 +249,7 @@ const loop = function (timestamp) {
     player.xVelocity += 1 * delta;
   }
   if (controller.jump && player.jumping === false) {
-    player.yVelocity -= 22; // Jump impulse (not scaled by delta)
+    player.yVelocity -= 12 * delta;
     player.jumping = true;
   }
 
