@@ -2,6 +2,10 @@
 const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
 
+// Load the cover image for the game
+const coverImage = new Image();
+coverImage.src = "./Images/cyberleapcover.png";
+
 // Load the background image for the level
 const bgImage = new Image();
 bgImage.src = "./Images/cyberbackgroundfor2dgame.png";
@@ -392,11 +396,16 @@ const loop = function (timestamp) {
 
 // Draw the cover screen (welcome or game over)
 function drawCoverScreen(gameOver = false) {
-  context.fillStyle = "#5871CD";
-  context.fillRect(0, 0, canvas.width, canvas.height);
+  // Draw the cover image if loaded, otherwise fallback to color
+  if (coverImage.complete && coverImage.naturalWidth !== 0) {
+    context.drawImage(coverImage, 0, 0, canvas.width, canvas.height);
+  } else {
+    context.fillStyle = "#5871CD";
+    context.fillRect(0, 0, canvas.width, canvas.height);
+  }
+
   context.fillStyle = "#f0f0f0";
   context.font = "30px Arial";
-  context.textAlign = "center";
   if (gameOver) {
     context.fillText("Game Over", canvas.width / 2, canvas.height / 2);
     context.fillText(
@@ -404,16 +413,9 @@ function drawCoverScreen(gameOver = false) {
       canvas.width / 2,
       canvas.height / 2 + 40
     );
-    // Show reset button
     document.getElementById("startButton").innerText = "Reset Game";
     document.getElementById("startButton").style.display = "inline-block";
   } else {
-    context.fillText(
-      "Welcome to the Game",
-      canvas.width / 2,
-      canvas.height / 2
-    );
-    // Initial state for start button
     document.getElementById("startButton").innerText = "Start Game";
   }
 }
