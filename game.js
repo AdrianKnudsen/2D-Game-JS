@@ -10,6 +10,10 @@ coverImage.src = "./Images/cyberleapcover.png";
 const bgImage = new Image();
 bgImage.src = "./Images/cyberbackgroundfor2dgame.png";
 
+// Load the background image for the end screen
+const gameOverImage = new Image();
+gameOverImage.src = "./Images/cyberleapgameover.png";
+
 // Set a fallback level width (will be updated when bg loads)
 let LEVEL_WIDTH = 16000;
 
@@ -396,27 +400,31 @@ const loop = function (timestamp) {
 
 // Draw the cover screen (welcome or game over)
 function drawCoverScreen(gameOver = false) {
-  // Draw the cover image if loaded, otherwise fallback to color
-  if (coverImage.complete && coverImage.naturalWidth !== 0) {
-    context.drawImage(coverImage, 0, 0, canvas.width, canvas.height);
-  } else {
-    context.fillStyle = "#5871CD";
-    context.fillRect(0, 0, canvas.width, canvas.height);
-  }
-
-  context.fillStyle = "#f0f0f0";
-  context.font = "30px Arial";
   if (gameOver) {
-    context.fillText("Game Over", canvas.width / 2, canvas.height / 2);
-    context.fillText(
-      `Points: ${coinScore}`,
-      canvas.width / 2,
-      canvas.height / 2 + 40
-    );
+    // Draw the cover image if loaded, otherwise fallback to color
+    if (gameOverImage.complete && gameOverImage.naturalWidth !== 0) {
+      context.drawImage(gameOverImage, 0, 0, canvas.width, canvas.height);
+    } else {
+      context.fillStyle = "#1b1b1b";
+      context.fillRect(0, 0, canvas.width, canvas.height);
+    }
+    // Draw the score in yellow, below the center
+    context.textAlign = "center";
+    context.fillStyle = "#FFD700";
+    context.font = "32px Arial";
+    context.fillText(`Points: ${coinScore}`, canvas.width / 2, 430);
     document.getElementById("startButton").innerText = "Reset Game";
     document.getElementById("startButton").style.display = "inline-block";
   } else {
+    // Draw the cover image if loaded, otherwise to color
+    if (coverImage.complete && coverImage.naturalWidth !== 0) {
+      context.drawImage(coverImage, 0, 0, canvas.width, canvas.height);
+    } else {
+      context.fillStyle = "#5871CD";
+      context.fillReact(0, 0, canvas.width, canvas.height);
+    }
     document.getElementById("startButton").innerText = "Start Game";
+    context.textAlign = "center";
   }
 }
 
