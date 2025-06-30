@@ -97,7 +97,7 @@ document.getElementById("startButton").addEventListener("click", startGame);
 // Generate platforms spaced so the player can jump from one to the next
 function generateRandomPlatforms(numPlatforms = 100) {
   platforms.length = 0;
-  coins.length = 0; // Clear coins
+  coins.length = 0;
 
   // Place the starting ledge at the far left edge
   const startLedge = {
@@ -119,10 +119,15 @@ function generateRandomPlatforms(numPlatforms = 100) {
     maxDY = 10; // vertical distance (negative = up)
   let minGap = 20; // Minimum horizontal gap between platforms
 
-  // Generate each platform
-  for (let i = 0; i < numPlatforms - 1; i++) {
+  let coinCount = 0;
+  let skipNextCoin = false; // Ensures no adjacent coins
+
+  // Generate each platform (until there is 100 coins)
+  let attempts = 0;
+  while (coinCount < 100 && attempts < 10000) {
+    attempts++;
     // Gradually increase maxDX for more challenge as you progress
-    let progress = i / numPlatforms;
+    let progress = platforms.length / Math.max(numPlatforms, 100);
     let dynamicMaxDX = maxDX + progress * 100; // up to 100px more at the end
     const width = Math.floor(Math.random() * (maxWidth - minWidth)) + minWidth;
 
@@ -172,8 +177,8 @@ function generateRandomPlatforms(numPlatforms = 100) {
         speed: 1 + Math.random() * 1.5,
       });
 
-      // 30% chance to place a coin (point) on this platform
-      if (Math.random() < 0.3) {
+      // Place a coin if not skipping this platform and still need coins
+      if (!skipNextCoin && coinCount < 100) {
         coins.push({
           x: x + width / 2 - 10,
           y: y - 20,
@@ -181,11 +186,18 @@ function generateRandomPlatforms(numPlatforms = 100) {
           collected: false,
           spin: Math.random() * Math.PI * 2,
         });
+        coinCount++;
+        skipNextCoin = true; // Skip the next platform
+      } else {
+        skipNextCoin = false;
       }
 
       prevX = x;
       prevY = y;
     }
+  }
+  if (attempts >= 10000) {
+    console.warn("Platform generation stopped after too many attempts.");
   }
 }
 
@@ -421,7 +433,7 @@ function drawCoverScreen(gameOver = false) {
       context.drawImage(coverImage, 0, 0, canvas.width, canvas.height);
     } else {
       context.fillStyle = "#5871CD";
-      context.fillReact(0, 0, canvas.width, canvas.height);
+      context.fillRect(0, 0, canvas.width, canvas.height);
     }
     document.getElementById("startButton").innerText = "Start Game";
     context.textAlign = "center";
