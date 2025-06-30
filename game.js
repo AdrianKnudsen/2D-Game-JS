@@ -1,71 +1,59 @@
-// Get the canvas and its drawing context
+// =======================================================
+// =============== CYBER LEAP - MAIN GAME FILE ===========
+// =======================================================
+
+// ===================[ CONSTANTS & GLOBALS ]===================
+
+// Canvas setup
 const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
+canvas.height = 500;
+canvas.width = 1000;
+const context = ctx;
 
-// Load the cover image for the game
+// Images
 const coverImage = new Image();
 coverImage.src = "./Images/cyberleapcover.png";
-
-// Load the background image for the level
 const bgImage = new Image();
 bgImage.src = "./Images/cyberbackgroundfor2dgame.png";
-
-// Load the background image for the end screen
 const gameOverImage = new Image();
 gameOverImage.src = "./Images/cyberleapgameover.png";
-
-// Preload the player image (sprite sheet)
 const playerImage = new Image();
 playerImage.src = "./Images/playerspritemapv9.png";
 
-// Set a fallback level width (will be updated when bg loads)
+// Level and game state
 let LEVEL_WIDTH = 16000;
-
-// Timer for score (not used for points, but can be used for time-based features)
+let FLOOR_Y = canvas.height - 5;
 let timer = 0;
-
-// Points variable (counts collected coins)
 let coinScore = 0;
-
-// Frame counter for animation or timing (not used in main loop)
 let frameCount = 60;
-
-// Used for frame-rate independent movement
 let lastTimestamp = 0;
+let cameraX = 0;
 
-// Set canvas size
-canvas.height = 500;
-canvas.width = 1000;
+// ===================[ GAME OBJECTS ]===================
 
-// Alias for context (for clarity)
-const context = ctx;
-
-// Y position of the floor (bottom of the screen minus ground thickness)
-const FLOOR_Y = canvas.height - 5;
-
-// Player object with position, size, and animation state
+// Player object
 const player = {
   x: 0,
   y: FLOOR_Y - 64,
   xVelocity: 0,
   yVelocity: 0,
   jumping: true,
-  width: 46, // width of one frame in the sprite sheet
-  height: 50, // height of one frame in the sprite sheet
-  frameX: 0, // current frame index (column)
-  frameY: 3, // row index for running (bottom row, zero-based)
-  frameCount: 8, // number of frames in the run animation (bottom row)
+  width: 46,
+  height: 50,
+  frameX: 0,
+  frameY: 3,
+  frameCount: 8,
   frameTimer: 0,
-  frameInterval: 2, // how many game frames to wait before advancing animation
+  frameInterval: 2,
 };
 
-// Array to hold all platforms in the level
+// Arrays for platforms and coins
 const platforms = [];
-
-// Array to hold coins (points)
 const coins = [];
 
-// Keyboard controller for movement and jumping
+// ===================[ INPUT HANDLING ]===================
+
 const controller = {
   left: false,
   right: false,
@@ -86,6 +74,8 @@ const controller = {
   },
 };
 
+// ===================[ UI & EVENT HOOKS ]===================
+
 // Hide the start button until the background image is loaded
 document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("startButton").style.display = "none";
@@ -94,7 +84,8 @@ document.addEventListener("DOMContentLoaded", () => {
 // Start button event listener (starts the game)
 document.getElementById("startButton").addEventListener("click", startGame);
 
-// Generate platforms spaced so the player can jump from one to the next
+// ===================[ PLATFORM & COIN GENERATION ]===================
+
 function generateRandomPlatforms(numPlatforms = 100) {
   platforms.length = 0;
   coins.length = 0;
@@ -108,43 +99,40 @@ function generateRandomPlatforms(numPlatforms = 100) {
   };
   platforms.push(startLedge);
 
-  // Variables for platform generation
+  // Platform generation variables
   let prevX = startLedge.x;
   let prevY = startLedge.y;
   let minWidth = 60,
     maxWidth = 140;
   let minDX = 100,
-    maxDX = 220; // horizontal distance between platforms
+    maxDX = 220;
   let minDY = -20,
-    maxDY = 10; // vertical distance (negative = up)
-  let minGap = 20; // Minimum horizontal gap between platforms
+    maxDY = 10;
+  let minGap = 20;
 
   let coinCount = 0;
   let skipNextCoin = false; // Ensures no adjacent coins
-
-  // Generate each platform (until there is 100 coins)
   let attempts = 0;
+
+  // Generate platforms until there are 100 coins
   while (coinCount < 100 && attempts < 10000) {
     attempts++;
-    // Gradually increase maxDX for more challenge as you progress
     let progress = platforms.length / Math.max(numPlatforms, 100);
-    let dynamicMaxDX = maxDX + progress * 100; // up to 100px more at the end
+    let dynamicMaxDX = maxDX + progress * 100;
     const width = Math.floor(Math.random() * (maxWidth - minWidth)) + minWidth;
 
-    // Ensure platforms do not touch: start after previous platform's right edge + minGap
     let minX = prevX + platforms[platforms.length - 1].width + minGap;
     let maxX = Math.min(minX + (dynamicMaxDX - minDX), LEVEL_WIDTH - maxWidth);
     let x = Math.floor(Math.random() * (maxX - minX + 1)) + minX;
 
-    // Keep vertical gaps reasonable
     let dy = Math.floor(Math.random() * (maxDY - minDY)) + minDY;
     let y = prevY + dy;
     y = Math.max(80, Math.min(y, FLOOR_Y - 60));
 
     // 20% chance to make the platform moving
     const moving = Math.random() < 0.2;
-    const moveRange = 80 + Math.random() * 80; // how far it moves left/right
-    const baseX = x; // original x position
+    const moveRange = 80 + Math.random() * 80;
+    const baseX = x;
 
     // Calculate movement bounds for this platform
     const newMin = moving ? baseX - moveRange : x;
@@ -177,7 +165,7 @@ function generateRandomPlatforms(numPlatforms = 100) {
         speed: 1 + Math.random() * 1.5,
       });
 
-      // Place a coin if not skipping this platform and still need coins
+      // Place a coin if not skipping (never on adjacent platforms)
       if (!skipNextCoin && coinCount < 100) {
         coins.push({
           x: x + width / 2 - 10,
@@ -201,7 +189,8 @@ function generateRandomPlatforms(numPlatforms = 100) {
   }
 }
 
-// Start or restart the game
+// ===================[ GAME START/RESET ]===================
+
 function startGame() {
   generateRandomPlatforms(100);
   window.addEventListener("keydown", controller.keyListener);
@@ -214,34 +203,30 @@ function startGame() {
   player.yVelocity = 0;
   player.jumping = true;
   timer = 0;
-  coinScore = 0; // Reset points on restart
+  coinScore = 0;
   frameCount = 1;
   drawCoverScreen(false);
   window.requestAnimationFrame(loop);
 }
 
-// Camera X offset for scrolling
-let cameraX = 0;
+// ===================[ MAIN GAME LOOP ]===================
 
-// Main game loop
 const loop = function (timestamp) {
-  // Calculate delta time for frame-rate independent movement
+  // --- Delta time calculation ---
   if (!lastTimestamp) lastTimestamp = timestamp;
-  let delta = (timestamp - lastTimestamp) / 16.67; // 16.67ms ≈ 60fps, so delta ≈ 1 at 60fps
+  let delta = (timestamp - lastTimestamp) / 16.67;
   lastTimestamp = timestamp;
 
-  // Center the camera on the player, but don't scroll past the level edges
+  // --- Camera logic ---
   cameraX = player.x + player.width / 2 - canvas.width / 2;
   if (cameraX < 0) cameraX = 0;
   if (cameraX > LEVEL_WIDTH - canvas.width)
     cameraX = LEVEL_WIDTH - canvas.width;
-
-  // Camera Y offset for vertical scrolling
   let cameraY = player.y + player.height / 2 - canvas.height / 2;
   if (cameraY < 0) cameraY = 0;
   if (cameraY > FLOOR_Y - canvas.height) cameraY = FLOOR_Y - canvas.height;
 
-  // Draw enough background tiles to cover the visible area, scrolling with the camera
+  // --- Draw background ---
   const bgTiles = Math.ceil(canvas.width / bgImage.width) + 2;
   for (let i = 0; i < bgTiles; i++) {
     context.drawImage(
@@ -253,30 +238,22 @@ const loop = function (timestamp) {
     );
   }
 
-  // Handle player input for movement and jumping (scaled by delta)
-  if (controller.left) {
-    player.xVelocity -= 1 * delta;
-  }
-  if (controller.right) {
-    player.xVelocity += 1 * delta;
-  }
+  // --- Player input & physics ---
+  if (controller.left) player.xVelocity -= 1 * delta;
+  if (controller.right) player.xVelocity += 1 * delta;
   if (controller.jump && player.jumping === false) {
     player.yVelocity -= 12 * delta;
     player.jumping = true;
   }
-
-  // Apply gravity and friction to the player
   player.yVelocity += 1.3 * delta;
   player.xVelocity *= Math.pow(0.9, delta);
 
-  // Store previous Y position for collision checks
+  // --- Player movement & collision ---
   let prevY = player.y - player.yVelocity;
-
-  // Update player position
   player.x += player.xVelocity;
   player.y += player.yVelocity;
 
-  // Check for collisions with platforms (only when falling)
+  // Platform collision (only when falling)
   platforms.forEach((platform) => {
     if (
       prevY + player.height <= platform.y &&
@@ -291,22 +268,20 @@ const loop = function (timestamp) {
     }
   });
 
-  // Prevent the player from falling through the floor
+  // --- World boundaries ---
   if (player.y > FLOOR_Y - player.height) {
     player.jumping = false;
     player.y = FLOOR_Y - player.height;
     player.yVelocity = 0;
-    endGame(); // End the game if player touches the floor
-    return; // Stop the loop
+    endGame();
+    return;
   }
-
-  // Prevent the player from moving off the left edge of the screen
   if (player.x < 0) {
     player.x = 0;
     player.xVelocity = 0;
   }
 
-  // Animate player (simple run cycle)
+  // --- Player animation ---
   if (controller.left || controller.right) {
     player.frameTimer++;
     if (player.frameTimer >= player.frameInterval) {
@@ -314,10 +289,10 @@ const loop = function (timestamp) {
       player.frameTimer = 0;
     }
   } else {
-    player.frameX = 0; // idle frame (first frame of run)
+    player.frameX = 0;
   }
 
-  // Only draw if image is loaded
+  // --- Draw player ---
   if (playerImage.complete && playerImage.naturalWidth !== 0) {
     context.drawImage(
       playerImage,
@@ -332,7 +307,7 @@ const loop = function (timestamp) {
     );
   }
 
-  // Move moving platforms
+  // --- Move moving platforms ---
   platforms.forEach((platform) => {
     if (platform.moving) {
       platform.x += platform.direction * platform.speed * delta;
@@ -340,12 +315,12 @@ const loop = function (timestamp) {
         platform.x > platform.baseX + platform.moveRange ||
         platform.x < platform.baseX - platform.moveRange
       ) {
-        platform.direction *= -1; // Reverse direction when reaching limits
+        platform.direction *= -1;
       }
     }
   });
 
-  // Draw all platforms, offset by the camera
+  // --- Draw platforms ---
   context.fillStyle = "#B3B3B3";
   platforms.forEach((platform) => {
     context.fillRect(
@@ -356,7 +331,7 @@ const loop = function (timestamp) {
     );
   });
 
-  // Draw the ground as a blue line at the bottom
+  // --- Draw ground ---
   context.strokeStyle = "#0c6cac";
   context.lineWidth = 10;
   context.beginPath();
@@ -364,10 +339,9 @@ const loop = function (timestamp) {
   context.lineTo(canvas.width, FLOOR_Y);
   context.stroke();
 
-  // Draw and animate coins (points)
+  // --- Draw and animate coins ---
   coins.forEach((coin) => {
     if (!coin.collected) {
-      // Simple spinning effect using scale
       coin.spin += 0.1;
       const scale = Math.abs(Math.cos(coin.spin));
       context.save();
@@ -387,7 +361,7 @@ const loop = function (timestamp) {
     }
   });
 
-  // Point collection: check if player touches a coin
+  // --- Coin collection ---
   coins.forEach((coin) => {
     if (
       !coin.collected &&
@@ -401,26 +375,26 @@ const loop = function (timestamp) {
     }
   });
 
-  // Draw points at top left
+  // --- Draw score ---
   context.fillStyle = "#FFD700";
   context.font = "22px Arial";
   context.fillText(`Points: ${coinScore}`, 50, 60);
 
-  // Request the next frame
+  // --- Next frame ---
   window.requestAnimationFrame(loop);
 };
 
-// Draw the cover screen (welcome or game over)
+// ===================[ COVER & END SCREENS ]===================
+
 function drawCoverScreen(gameOver = false) {
   if (gameOver) {
-    // Draw the cover image if loaded, otherwise fallback to color
+    // Game Over screen
     if (gameOverImage.complete && gameOverImage.naturalWidth !== 0) {
       context.drawImage(gameOverImage, 0, 0, canvas.width, canvas.height);
     } else {
       context.fillStyle = "#1b1b1b";
       context.fillRect(0, 0, canvas.width, canvas.height);
     }
-    // Draw the score in yellow, below the center
     context.textAlign = "center";
     context.fillStyle = "#FFD700";
     context.font = "32px Arial";
@@ -428,7 +402,7 @@ function drawCoverScreen(gameOver = false) {
     document.getElementById("startButton").innerText = "Reset Game";
     document.getElementById("startButton").style.display = "inline-block";
   } else {
-    // Draw the cover image if loaded, otherwise to color
+    // Cover screen
     if (coverImage.complete && coverImage.naturalWidth !== 0) {
       context.drawImage(coverImage, 0, 0, canvas.width, canvas.height);
     } else {
@@ -440,7 +414,8 @@ function drawCoverScreen(gameOver = false) {
   }
 }
 
-// End the game and show the cover screen with the score
+// ===================[ GAME OVER & HIGH SCORE ]===================
+
 function endGame() {
   updateHighScore(coinScore);
   displayHighScore();
@@ -449,7 +424,6 @@ function endGame() {
   document.getElementById("startButton").style.display = "inline-block";
 }
 
-// Update the high score in local storage if the current score is higher
 function updateHighScore(currentScore) {
   let highScore = localStorage.getItem("highScore")
     ? parseInt(localStorage.getItem("highScore"))
@@ -460,7 +434,6 @@ function updateHighScore(currentScore) {
   return highScore;
 }
 
-// Display the high score on the screen
 function displayHighScore() {
   let highScore = localStorage.getItem("highScore")
     ? localStorage.getItem("highScore")
@@ -469,11 +442,16 @@ function displayHighScore() {
     "High Score: " + highScore;
 }
 
-// When the background image loads, set up the level and show the start button
+// ===================[ INITIALIZATION ]===================
+
 bgImage.onload = function () {
-  LEVEL_WIDTH = bgImage.width * 50; // Level is 50 background images wide
+  LEVEL_WIDTH = bgImage.width * 50;
   generateRandomPlatforms();
   drawCoverScreen();
   displayHighScore();
   document.getElementById("startButton").style.display = "inline-block";
 };
+
+// =======================================================
+// ===================[ END OF FILE ]=====================
+// =======================================================
