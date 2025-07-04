@@ -311,11 +311,16 @@ const loop = function (timestamp) {
   platforms.forEach((platform) => {
     if (platform.moving) {
       platform.x += platform.direction * platform.speed * delta;
-      if (
-        platform.x > platform.baseX + platform.moveRange ||
-        platform.x < platform.baseX - platform.moveRange
-      ) {
-        platform.direction *= -1;
+      const leftLimit = platform.baseX - platform.moveRange;
+      const rightLimit = platform.baseX + platform.moveRange;
+
+      // If out of bounds, snap to boundary and reverse directions
+      if (platform.x > rightLimit) {
+        platform.x = rightLimit;
+        platform.direction = -1;
+      } else if (platform.x < leftLimit) {
+        platform.x = leftLimit;
+        platform.direction = 1;
       }
     }
   });
