@@ -41,14 +41,12 @@ body {
 }
 
 #startButton {
-  display: none;
-  position: absolute;
-  bottom: 50%;
-  left: 50%;
-  transform: translate(-50%, -65%);
+  margin: auto auto;
+  height: 4rem;
+  width: 15rem;
   padding: 0.5rem 2rem;
   border-radius: 10px;
-  font-size: 1.4rem;
+  font-size: 1.7rem;
   border: none;
   cursor: pointer;
   transition: all 0.5s;
@@ -59,9 +57,9 @@ body {
 }
 
 #startButton:hover {
-  padding: 0.5rem 3rem;
   background: linear-gradient(90deg, #00b436 0%, #0c6cac 100%);
   color: #fbf5f3;
+  width: 18rem;
 }
 
 #startButton::after {
