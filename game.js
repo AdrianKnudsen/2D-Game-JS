@@ -214,8 +214,8 @@ function startGame() {
 const loop = function (timestamp) {
   // --- Delta time calculation ---
   if (!lastTimestamp) lastTimestamp = timestamp;
-  let delta = (timestamp - lastTimestamp) / 16.67;
-  delta = Math.max(0.5, Math.min(delta, 1.2));
+  let deltaMs = timestamp - lastTimestamp;
+  let deltaSeconds = Math.min(deltaMs / 1000, 0.05); // Maks 50ms (20fps)
   lastTimestamp = timestamp;
 
   // --- Camera logic ---
@@ -240,19 +240,25 @@ const loop = function (timestamp) {
   }
 
   // --- Player input & physics ---
-  if (controller.left) player.xVelocity -= 1 * delta;
-  if (controller.right) player.xVelocity += 1 * delta;
+  const ACCEL = 600; // Pixels per second^2
+  const GRAVITY = 1300; // Pixels per second^2
+  const JUMP_VELOCITY = -550; // Pixels per second
+  const FRICTION = 0.9;
+
+  if (controller.left) player.xVelocity -= ACCEL * deltaSeconds;
+  if (controller.right) player.xVelocity += ACCEL * deltaSeconds;
   if (controller.jump && player.jumping === false) {
-    player.yVelocity -= 12 * delta;
+    player.yVelocity = JUMP_VELOCITY;
     player.jumping = true;
   }
-  player.yVelocity += 1.3 * delta;
-  player.xVelocity *= Math.pow(0.9, delta);
+
+  player.yVelocity += GRAVITY * deltaSeconds;
+  player.xVelocity *= Math.pow(FRICTION, deltaSeconds * 60);
 
   // --- Player movement & collision ---
   let prevY = player.y - player.yVelocity;
-  player.x += player.xVelocity;
-  player.y += player.yVelocity;
+  player.x += player.xVelocity * deltaSeconds;
+  player.y += player.yVelocity * deltaSeconds;
 
   // Platform collision (only when falling)
   platforms.forEach((platform) => {
@@ -311,7 +317,7 @@ const loop = function (timestamp) {
   // --- Move moving platforms ---
   platforms.forEach((platform) => {
     if (platform.moving) {
-      platform.x += platform.direction * platform.speed * delta;
+      platform.x += platform.direction * platform.speed * deltaSeconds * 60;
       const leftLimit = platform.baseX - platform.moveRange;
       const rightLimit = platform.baseX + platform.moveRange;
 
