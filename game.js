@@ -215,6 +215,7 @@ const loop = function (timestamp) {
   // --- Delta time calculation ---
   if (!lastTimestamp) lastTimestamp = timestamp;
   let delta = (timestamp - lastTimestamp) / 16.67;
+  delta = Math.max(0.5, Math.min(delta, 1.2));
   lastTimestamp = timestamp;
 
   // --- Camera logic ---
